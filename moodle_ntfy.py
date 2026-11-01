@@ -119,17 +119,26 @@ def offset_label(offset_h):
     return f"H-{offset_h}jam"
 
 
-def send_ntfy(cfg, title, message, tags="alarm_clock,tada"):
+def send_ntfy(cfg, title, message, offset_h=None, tags="alarm_clock,tada"):
     url = f"{cfg['ntfy_server']}/{cfg['ntfy_topic']}"
     headers = {
         "Title": title,
         "Tags": tags,
-        "Priority": "high",
+        "Priority": "default",
     }
+    # Urgent offsets (<=12h) → persistent notification on Android + Done action
+    if offset_h is not None and offset_h <= 12:
+        headers["Priority"] = "max"
+        headers["Actions"] = "view, Selesai, https://besmart.uny.ac.id/, clear=true"
+    else:
+        headers["Priority"] = "high"
     if cfg["dry_run"]:
         log(f"[DRY-RUN] Would POST to {url}")
-        log(f"  Title: {title}")
-        log(f"  Body : {message}")
+        log(f"  Title   : {title}")
+        log(f"  Body    : {message}")
+        log(f"  Priority: {headers['Priority']}")
+        if "Actions" in headers:
+            log(f"  Actions : {headers['Actions']}")
         return
     r = requests.post(url, data=message.encode("utf-8"), headers=headers, timeout=15)
     r.raise_for_status()
@@ -196,7 +205,7 @@ def main():
             msg = (f"Tugas: {ev['summary']}\n"
                    f"Deadline: {time_str} WIB\n"
                    f"(reminder {label})")
-            to_send.append((key, title, msg))
+            to_send.append((key, title, msg, offset_h))
 
     if not to_send:
         log("No new notifications due.")
@@ -205,9 +214,9 @@ def main():
 
     log(f"Sending {len(to_send)} notifications...")
     sent_count = 0
-    for key, title, msg in to_send:
+    for key, title, msg, offset_h in to_send:
         try:
-            send_ntfy(cfg, title, msg)
+            send_ntfy(cfg, title, msg, offset_h=offset_h)
             sent[key] = {
                 "sent_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "title": title,
