@@ -39,7 +39,7 @@ def get_config():
     return {
         "ical_url": os.environ["ICAL_URL"],
         "ntfy_topic": os.environ["NTFY_TOPIC"],
-        "ntfy_server": os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
+        "ntfy_server": (os.environ.get("NTFY_SERVER") or "https://ntfy.sh").rstrip("/"),
         "state_file": Path(os.environ.get("STATE_FILE", "state.json")),
         "lookahead_h": int(os.environ.get("LOOKAHEAD_H", "240")),
         "offsets_h": [int(x) for x in offsets_raw.split(",") if x.strip()],
