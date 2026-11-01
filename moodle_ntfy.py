@@ -42,7 +42,7 @@ def get_config():
         "ntfy_server": (os.environ.get("NTFY_SERVER") or "https://ntfy.sh").rstrip("/"),
         "state_file": Path(os.environ.get("STATE_FILE", "state.json")),
         "lookahead_h": int(os.environ.get("LOOKAHEAD_H", "240")),
-        "offsets_h": [int(x) for x in offsets_raw.split(",") if x.strip()],
+        "offsets_h": [float(x) for x in offsets_raw.split(",") if x.strip()],
         "poll_interval_h": float(os.environ.get("POLL_INTERVAL_H", "1")),
         "tz_offset": int(os.environ.get("TZ_OFFSET", "7")),
         "dry_run": os.environ.get("DRY_RUN", "0") == "1",
@@ -112,11 +112,14 @@ def fmt_local(dt_utc, tz_offset_h):
 
 def offset_label(offset_h):
     if offset_h >= 24:
-        days = offset_h // 24
+        days = int(offset_h // 24)
         return f"H-{days}"
     if offset_h == 1:
         return "H-1jam"
-    return f"H-{offset_h}jam"
+    if offset_h < 1:
+        minutes = int(offset_h * 60)
+        return f"H-{minutes}menit"
+    return f"H-{int(offset_h)}jam"
 
 
 def send_ntfy(cfg, title, message, offset_h=None, tags="alarm_clock,tada"):
@@ -146,7 +149,7 @@ def send_ntfy(cfg, title, message, offset_h=None, tags="alarm_clock,tada"):
 
 
 def dedupe_key(uid, offset_h):
-    raw = f"{uid}|{offset_h}"
+    raw = f"{uid}|{offset_h:g}"
     return hashlib.sha1(raw.encode()).hexdigest()
 
 
