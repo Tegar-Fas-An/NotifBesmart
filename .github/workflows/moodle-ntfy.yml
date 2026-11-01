@@ -39,7 +39,7 @@ jobs:
           NTFY_SERVER: ${{ secrets.NTFY_SERVER }}  # optional, defaults to https://ntfy.sh
           STATE_FILE: state.json
           POLL_INTERVAL_H: '0.25'  # match cron interval (15 min)
-          OFFSETS_H: '168,72,24,12,6,3,1'
+          OFFSETS_H: '168,72,24,12,6,3,1,0.5,0.25'
           LOOKAHEAD_H: '240'
           TZ_OFFSET: '7'
         run: python moodle_ntfy.py
