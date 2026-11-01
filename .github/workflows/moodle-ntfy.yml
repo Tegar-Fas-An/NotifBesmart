@@ -1,0 +1,52 @@
+name: Moodle Ntfy Cron
+
+on:
+  schedule:
+    # Run every 30 minutes. GitHub Actions cron is in UTC.
+    # Note: GitHub may delay or skip scheduled runs on free tier;
+    # if reliability is critical, consider cron-job.org as backup.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # allow manual trigger from Actions tab
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore state cache
+        uses: actions/cache@v4
+        with:
+          path: state.json
+          key: moodle-ntfy-state-${{ github.run_id }}
+          restore-keys: |
+            moodle-ntfy-state-
+
+      - name: Run notifier
+        env:
+          ICAL_URL: ${{ secrets.ICAL_URL }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_SERVER: ${{ secrets.NTFY_SERVER }}  # optional, defaults to https://ntfy.sh
+          STATE_FILE: state.json
+          POLL_INTERVAL_H: '0.5'  # match cron interval (30 min)
+          OFFSETS_H: '168,72,24,12,6'
+          LOOKAHEAD_H: '240'
+          TZ_OFFSET: '7'
+        run: python moodle_ntfy.py
+
+      - name: Save state (always, even on failure)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: moodle-ntfy-state-${{ github.run_id }}
